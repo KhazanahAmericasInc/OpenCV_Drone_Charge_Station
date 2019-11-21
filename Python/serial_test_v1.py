@@ -20,13 +20,13 @@ command = command + "\n"
 arduino.write(command.encode())
 print("Low throttle")
 
-time.sleep(1)
-command = "%i,%i,%i,%i" % (1500, 1500, 1500, 1500) #Throttle, 
+time.sleep(3)
+command = "%i,%i,%i,%i" % (1200, 1500, 1500, 1500) #Throttle, 
 command = command + "\n"
 arduino.write(command.encode())
 print("High throttle")
 
-time.sleep(1)
+time.sleep(3)
 command = "%i,%i,%i,%i" % (1000, 1500, 1500, 1500) #Throttle, 
 command = command + "\n"
 arduino.write(command.encode())

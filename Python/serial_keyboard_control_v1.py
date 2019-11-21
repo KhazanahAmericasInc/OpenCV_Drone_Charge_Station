@@ -10,10 +10,12 @@ def clamp(n, minn, maxn):
         return n
 
 
-throttle_rate=15
-aileron_rate=400
-elevator_rate=400
-rudder_rate=300
+throttle_rate=7
+aileron_rate=500
+elevator_rate=500
+rudder_rate=400
+
+motors_on = False;
 
 # define middle PPM values that make the drone hover
 throttle_middle = 1600  # up (+) and down (-)
@@ -22,7 +24,7 @@ elevator_middle = 1500  # forward (+) and backward (-)
 rudder_middle = 1500  # yaw left (-) and yaw right (+)
 
 # define engines off PPM value for throttle
-throttle_off = 999
+throttle_off = 1000
 
 arduino=serial.Serial('COM5', 115200, timeout=.01)
 
@@ -69,18 +71,22 @@ while (1):
         elevator -= elevator_rate
 
         
-
     throttle = clamp (throttle, throttle_off, 2000)
     aileron = clamp (aileron, 1000, 2000)
     elevator = clamp (elevator, 1000, 2000)
     rudder = clamp (rudder, 1000, 2000)
-
     
-    command = "%i,%i,%i,%i" % (throttle, aileron, elevator, rudder) 
-    command = command + "\n"
-    arduino.write(command.encode())
 
-    print("%i,%i,%i,%i" % (throttle, aileron, elevator, rudder))
+    if (throttle > throttle_off):
+        motors_on = True
+
+    if (motors_on):
+        command = "%i,%i,%i,%i" % (throttle, aileron, elevator, rudder) 
+        command = command + "\n"
+        arduino.write(command.encode())
+        print("%i,%i,%i,%i" % (throttle, aileron, elevator, rudder))
+        if (throttle <= throttle_off):
+            motors_on = False
 
 
 
