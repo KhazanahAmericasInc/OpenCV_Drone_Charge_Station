@@ -1,3 +1,5 @@
+##Angle error difference working
+
 """
 This demo calculates multiple things for different scenarios.
 Here are the defined reference frames:
@@ -82,6 +84,18 @@ def rotationMatrixToEulerAngles(R):
 
     return np.array([x, y, z])
 
+def getAngleError(actual, target, oldError):
+    
+    difference = target - actual
+    if (difference > 180):
+        actual += 360
+    if (difference < -180):
+        actual -= 360
+    difference = target - actual
+
+    return difference
+
+    
 ii = 0
 
 # record everything
@@ -251,10 +265,6 @@ while True:
         #-- Get the attitude in terms of euler 321 (Needs to be flipped first)
         roll_marker, pitch_marker, yaw_marker = rotationMatrixToEulerAngles(R_flip*R_tc)
 
-        print (yaw_marker)
-        print ("     ")
-
-
         xDrone = tvec[0]
         yDrone = tvec[1]
         zDrone = tvec[2]
@@ -324,7 +334,9 @@ while True:
     xError = xTarget[ii]-xDroneFiltered
     yError = yTarget[ii]-yDroneFiltered
     zError = zTarget[ii]-zDroneFiltered
-    angleError = angleTarget[ii]-angleDroneFiltered
+    angleError = getAngleError(angleDroneFiltered, angleTarget[ii], angleError_old)
+    print("Angle={:.1f}   Target={:.1f} Error={:.1f} ".format(angleDroneFiltered, angleTarget[ii], angleError))
+
 
     ii += 1
 
@@ -379,9 +391,9 @@ while True:
     # create the command to send to Arduino
     command = "%i,%i,%i,%i" % (throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
 
-    print("[Location]: x={:.0f} y={:.0f} z={:.0f} angle={:.0f}".format(xDrone, yDrone, zDrone, angleDrone))
+    #print("[Location]: x={:.0f} y={:.0f} z={:.0f} angle={:.0f}".format(xDrone, yDrone, zDrone, angleDrone))
     # print the projected commands
-    print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(throttleCommand, aileronCommand, elevatorCommand, rudderCommand))
+    #print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(throttleCommand, aileronCommand, elevatorCommand, rudderCommand))
 
     # send to Arduino via serial port
     command = command + "\n"

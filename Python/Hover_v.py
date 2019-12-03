@@ -82,6 +82,14 @@ def rotationMatrixToEulerAngles(R):
 
     return np.array([x, y, z])
 
+def getAngleDifference(a, b)
+    difference = b - a
+    while (differece < -180):
+        difference += 360
+    while (difference > 180):
+        difference -= 360
+    return difference
+
 ii = 0
 
 # record everything
