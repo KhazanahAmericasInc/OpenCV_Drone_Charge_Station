@@ -72,8 +72,8 @@ def rotationMatrixToEulerAngles(R):
 
 #--- Get the camera calibration path
 calib_path  = ""
-camera_matrix   = np.loadtxt(calib_path+'cameraMatrix.txt', delimiter=',')
-camera_distortion   = np.loadtxt(calib_path+'cameraDistortion.txt', delimiter=',')
+camera_matrix   = np.loadtxt(calib_path+'cameraMatrix_Logitech.txt', delimiter=',')
+camera_distortion   = np.loadtxt(calib_path+'cameraDistortion_Logitech.txt', delimiter=',')
 
 #--- 180 deg rotation matrix around the x axis
 R_flip  = np.zeros((3,3), dtype=np.float32)
