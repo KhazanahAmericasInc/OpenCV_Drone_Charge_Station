@@ -307,9 +307,9 @@ void kn_update_packet_control_data(u8 packet[], int32_t packet_count, int32_t rf
     packet[6]  = (rudder >> 8) & 0xFF;
     packet[7]  = rudder & 0xFF;
     // Trims, middle is 0x64 (100) range 0-200
-    packet[8]  = map(ppm[AUX5], PPM_MIN, PPM_MAX, 0, 200); // 0x64; // Throttle trim
-    packet[9]  = map(ppm[AUX6], PPM_MIN, PPM_MAX, 0, 200); // 0x64; // Aileron trim
-    packet[10] = map(ppm[AUX7], PPM_MIN, PPM_MAX, 0, 200); // 0x64; // Elevator trim
+    packet[8]  = map(ppm2[AUX5], PPM_MIN, PPM_MAX, 0, 200); // 0x64; // Throttle trim
+    packet[9]  = map(ppm2[AUX6], PPM_MIN, PPM_MAX, 0, 200); // 0x64; // Aileron trim
+    packet[10] = map(ppm2[AUX7], PPM_MIN, PPM_MAX, 0, 200); // 0x64; // Elevator trim
     packet[11] = 0x64; // Rudder trim (neutral)
     packet[12] = flags;
     
@@ -340,6 +340,5 @@ void kn_read_controls(u16* throttle, u16* aileron, u16* elevator, u16* rudder, u
 
 u16 kn_convert_channel(u8 num)
 {
-    return map(ppm[num], PPM_MIN, PPM_MAX, 0, 1023);
+    return map(ppm2[num], PPM_MIN, PPM_MAX, 0, 1023);
 }
-

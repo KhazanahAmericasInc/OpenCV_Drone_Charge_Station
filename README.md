@@ -11,6 +11,5 @@ Using work from [@goebish](https://github.com/goebish/nrf24_multipro) (transmitt
 - Arduino Uno 
 - 2.4GHz nRF24L01+ 
 - PlayStation Eye webcam
-- Socket adapter with on-board 3.3V regulator
 
 

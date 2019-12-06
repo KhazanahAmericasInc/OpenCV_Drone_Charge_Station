@@ -148,40 +148,40 @@ void V2x2_set_flags(uint16_t* flags)
 {
     int num_channels = CHANNELS;
     // Channel 5
-    if (ppm[AUX1] <= PPM_MID) *flags &= ~V2x2_FLAG_LED;
+    if (ppm2[AUX1] <= PPM_MID) *flags &= ~V2x2_FLAG_LED;
     else *flags |= V2x2_FLAG_LED;
     
     // Channel 6
-    if (ppm[AUX2] <= PPM_MID) *flags &= ~V2x2_FLAG_FLIP;
+    if (ppm2[AUX2] <= PPM_MID) *flags &= ~V2x2_FLAG_FLIP;
     else *flags |= V2x2_FLAG_FLIP;
 
     // Channel 7
-    if (num_channels < 7 || ppm[AUX3] <= PPM_MID) *flags &= ~V2x2_FLAG_CAMERA;
+    if (num_channels < 7 || ppm2[AUX3] <= PPM_MID) *flags &= ~V2x2_FLAG_CAMERA;
     else *flags |= V2x2_FLAG_CAMERA;
 
     // Channel 8
-    if (num_channels < 8 || ppm[AUX4] <= PPM_MID) *flags &= ~V2x2_FLAG_VIDEO;
+    if (num_channels < 8 || ppm2[AUX4] <= PPM_MID) *flags &= ~V2x2_FLAG_VIDEO;
     else *flags |= V2x2_FLAG_VIDEO;
 
     // Channel 9
-    if (num_channels < 9 || ppm[AUX5] <= PPM_MID) *flags &= ~V2x2_FLAG_HEADLESS;
+    if (num_channels < 9 || ppm2[AUX5] <= PPM_MID) *flags &= ~V2x2_FLAG_HEADLESS;
     else *flags |= V2x2_FLAG_HEADLESS;
 
     // Channel 10
-    if (num_channels < 10 || ppm[AUX6] <= PPM_MID) *flags &= ~V2x2_FLAG_MAG_CAL_X;
+    if (num_channels < 10 || ppm2[AUX6] <= PPM_MID) *flags &= ~V2x2_FLAG_MAG_CAL_X;
     else *flags |= V2x2_FLAG_MAG_CAL_X;
 
     // Channel 11
-    if (num_channels < 11 || ppm[AUX7] <= PPM_MID) *flags &= ~V2x2_FLAG_MAG_CAL_Y;
+    if (num_channels < 11 || ppm2[AUX7] <= PPM_MID) *flags &= ~V2x2_FLAG_MAG_CAL_Y;
     else *flags |= V2x2_FLAG_MAG_CAL_Y;
 }
 
 uint8_t V2x2_convert_channel(uint8_t num)
 {
-    if(ppm[num]<PPM_MID)
-        return map(ppm[num],PPM_MIN,PPM_MID,0x7F,0x00);
+    if(ppm2[num]<PPM_MID)
+        return map(ppm2[num],PPM_MIN,PPM_MID,0x7F,0x00);
     else
-        return map(ppm[num],PPM_MID,PPM_MAX,0x80,0xFF);
+        return map(ppm2[num],PPM_MID,PPM_MAX,0x80,0xFF);
 }
 
 void V2x2_send_packet(uint8_t bind)
@@ -198,7 +198,7 @@ void V2x2_send_packet(uint8_t bind)
     } else {
         // regular packet
         V2x2_set_flags(&V2x2_flags);
-        packet[0] = map(ppm[THROTTLE],PPM_MIN,PPM_MAX,0,255); // 0 - 255
+        packet[0] = map(ppm2[THROTTLE],PPM_MIN,PPM_MAX,0,255); // 0 - 255
         packet[1] = V2x2_convert_channel(RUDDER); // 7f - [00 - 80] - ff
         packet[2] = V2x2_convert_channel(ELEVATOR); // 7f - [00 - 80] - ff
         packet[3] = V2x2_convert_channel(AILERON); // 7f - [00 - 80] - ff
@@ -235,4 +235,3 @@ void V2x2_send_packet(uint8_t bind)
     NRF24L01_WritePayload(packet, V2x2_PAYLOADSIZE);
     delayMicroseconds(15);
 }
-

@@ -78,10 +78,10 @@ void YD717_send_packet(uint8_t bind)
         packet[6] = YD717_FORMAT == FORMAT_NI_HUI ? 0x00 : 0x32;
         packet[7] = 0x00;
     } else {
-        packet[0] = map(ppm[THROTTLE], PPM_MIN, PPM_MAX, 0, 255);
-        packet[1] = map(ppm[RUDDER], PPM_MIN, PPM_MAX, 0, 255);
-        packet[3] = map(ppm[ELEVATOR], PPM_MIN, PPM_MAX, 0, 255);
-        packet[4] = map(ppm[AILERON], PPM_MIN, PPM_MAX, 0, 255);
+        packet[0] = map(ppm2[THROTTLE], PPM_MIN, PPM_MAX, 0, 255);
+        packet[1] = map(ppm2[RUDDER], PPM_MIN, PPM_MAX, 0, 255);
+        packet[3] = map(ppm2[ELEVATOR], PPM_MIN, PPM_MAX, 0, 255);
+        packet[4] = map(ppm2[AILERON], PPM_MIN, PPM_MAX, 0, 255);
         // dynamic trims
         if(YD717_FORMAT == FORMAT_YD717) {
             packet[2] = packet[3] >> 1; // elevator trim

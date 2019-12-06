@@ -27,7 +27,7 @@ enum {
     H8_3D_FLAG_RATE_HIGH= 0x04,
     H8_3D_FLAG_LED      = 0x08, // Light on H22
     H8_3D_FLAG_HEADLESS = 0x10, // RTH + headless on H8, headless on JJRC H20
-    H8_3D_FLAG_RTH      = 0x20, // 360° flip mode on H8 3D, RTH on JJRC H20
+    H8_3D_FLAG_RTH      = 0x20, // 360ï¿½ flip mode on H8 3D, RTH on JJRC H20
 };
 
 enum {
@@ -80,13 +80,13 @@ void H8_3D_send_packet(uint8_t  bind)
         packet[5] = H8_3D_rf_chan;
         packet[6] = 0x08;
         packet[7] = 0x03;
-        packet[9] = map(ppm[THROTTLE], PPM_MIN, PPM_MAX, 0, 0xff); // throttle
-        if( ppm[RUDDER] > PPM_MID)
-            packet[10] = map(ppm[RUDDER], PPM_MID, PPM_MAX, 0, 0x3c); // rudder
+        packet[9] = map(ppm2[THROTTLE], PPM_MIN, PPM_MAX, 0, 0xff); // throttle
+        if( ppm2[RUDDER] > PPM_MID)
+            packet[10] = map(ppm2[RUDDER], PPM_MID, PPM_MAX, 0, 0x3c); // rudder
         else
-            packet[10] = map(ppm[RUDDER], PPM_MID, PPM_MIN, 0x80, 0xbc); // rudder
-        packet[11] = map(ppm[ELEVATOR], PPM_MIN, PPM_MAX, 0x43, 0xbb); // elevator
-        packet[12] = map(ppm[AILERON], PPM_MIN, PPM_MAX, 0xbb, 0x43); // aileron
+            packet[10] = map(ppm2[RUDDER], PPM_MID, PPM_MIN, 0x80, 0xbc); // rudder
+        packet[11] = map(ppm2[ELEVATOR], PPM_MIN, PPM_MAX, 0x43, 0xbb); // elevator
+        packet[12] = map(ppm2[AILERON], PPM_MIN, PPM_MAX, 0xbb, 0x43); // aileron
         // neutral trims
         packet[13] = 0x20;
         packet[14] = 0x20;

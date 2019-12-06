@@ -1,5 +1,5 @@
-##Attempt to use Playstation EYE
-
+##Playstation eye
+##Attempting to land on small landing pad
 
 """
 This demo calculates multiple things for different scenarios.
@@ -33,6 +33,7 @@ import cv2.aruco as aruco
 import sys, time, math
 import serial
 from scipy.signal import butter, lfilter
+import keyboard
 
 
 #***********************************************
@@ -40,8 +41,12 @@ from scipy.signal import butter, lfilter
 #Position Targets
 xTarget = [0]
 yTarget = [0]
-zTarget = [55]
+zTarget = 75.0
 angleTarget = [0]
+
+landing = 70
+landingcut = 52
+maxheight = 30
 
 #--- Define Tag
 id_to_find  = 72
@@ -49,6 +54,23 @@ marker_size  = 4 #- [cm]
 
 # specify the USB port for the Arduino
 usb_port = 'COM7'
+
+#Manual Control
+throttle_rate=7
+aileron_rate=500
+elevator_rate=500
+rudder_rate=400
+
+# define middle PPM values that make the drone hover
+throttle_middle = 1715  # up (+) and down (-)
+aileron_middle = 1500  # left (-) and right (+)
+elevator_middle = 1500  # forward (+) and backward (-)
+rudder_middle = 1500  # yaw left (-) and yaw right (+)
+
+# define engines off PPM value for throttle
+throttle_off = 1000
+
+throttle = throttle_off
 
 #***********************************************
 
@@ -103,21 +125,9 @@ ii = 0
 # record everything
 timeRecord = []
 xRecord = []
-xFilteredRecord = []
 yRecord = []
-yFilteredRecord = []
 zRecord = []
-zFilteredRecord = []
 angleRecord = []
-angleFilteredRecord = []
-xErrorRecord = []
-yErrorRecord = []
-zErrorRecord = []
-angleErrorRecord = []
-aileronRecord = []
-elevatorRecord = []
-throttleRecord = []
-rudderRecord = []
 
 # define a clamping function
 def clamp(n, minimum, maximum):
@@ -148,10 +158,16 @@ xError_old, yError_old, zError_old, angleError_old = 0, 0, 0, 0
 #KIx, KIy, KIz, KIangle = 0, 0, 0.15, 0
 #KDx, KDy, KDz, KDangle = 160, 160, 115, 10
 
+## StartingPID
+#KPx, KPy, KPz, KPangle = 3, 3, 4, -3
+#KIx, KIy, KIz, KIangle = 0, 0, 0.1, 0
+#KDx, KDy, KDz, KDangle = 120, 120, 80, 10
+
+
 # # second set with filtering of measurements (30 fps)
-KPx, KPy, KPz, KPangle = 3, 3, 4, -3
-KIx, KIy, KIz, KIangle = 0, 0, 0.1, 0
-KDx, KDy, KDz, KDangle = 120, 120, 80, 10
+KPx, KPy, KPz, KPangle = 6, 6, 8, -3
+KIx, KIy, KIz, KIangle = 0, 0, 0.2, 0
+KDx, KDy, KDz, KDangle = 110, 110, 100, 10
 
 # third set with video recording (23 fps)
 # KPx, KPy, KPz, KPangle = 3, 3, 4, -3
@@ -162,15 +178,6 @@ KDx, KDy, KDz, KDangle = 120, 120, 80, 10
 # KPx, KPy, KPz, KPangle = 6, 6, 8, -3
 # KIx, KIy, KIz, KIangle = 0, 0, 0.2, 0
 # KDx, KDy, KDz, KDangle = 110, 110, 100, 10
-
-# define middle PPM values that make the drone hover
-throttle_middle = 1715  # up (+) and down (-)
-aileron_middle = 1500  # left (-) and right (+)
-elevator_middle = 1500  # forward (+) and backward (-)
-rudder_middle = 1500  # yaw left (-) and yaw right (+)
-
-# define engines off PPM value for throttle
-throttle_off = 1000
 
 # count frames without detecting the drone
 framesWithoutDrone = 0
@@ -222,13 +229,42 @@ time.sleep(1)
 start = time.perf_counter()
 end = start
 
+#zTarget = 50
+velocity = 0.1
+
+key = 22
+
+printcount = 0
+
+autoControl = 0
+detectionCount = 0
+detectionThreshold = 5
+detectionLostThreshold = 30
+
+input("Press enter to start...")  
+print ("Starting")
+
 while True:
 
+    #zTarget += velocity
+
+    if (zTarget < maxheight or zTarget > landing):
+        velocity = -velocity
+    
+    
     start = time.perf_counter()
     fps = 1/(start-end)
     end = start
+    printcount +=1
+    if (printcount > 40):
+        #print (fps)
+        printcount = 0
 
-    print (fps)
+    print (zTarget)
+    print (autoControl)
+    print ("**********")
+    
+    
     # drone detected or not
     droneDetected = False
 
@@ -248,6 +284,7 @@ while True:
     if ids is not None and ids[0] == id_to_find:
 
         droneDetected = True
+        detectionCount += 1
 
         framesWithoutDrone = 0
         
@@ -275,14 +312,23 @@ while True:
         xDrone = tvec[0]
         yDrone = tvec[1]
         zDrone = tvec[2]
-        angleDrone = math.degrees(yaw_marker)
+        angleDrone = math.degrees(yaw_marker) +45
 
-        str_position = "DRONE Position x=%4.0f  y=%4.0f  z=%4.0f yaw=%4.0f"%(xDrone, yDrone, zDrone, angleDrone)
-        cv2.putText(frame, str_position, (0, 100), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
+        #str_position = "DRONE Position x=%4.0f  y=%4.0f  z=%4.0f yaw=%4.0f"%(xDrone, yDrone, zDrone, angleDrone)
+        #cv2.putText(frame, str_position, (0, 100), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
 
 
     else:
         framesWithoutDrone += 1
+
+    if ((autoControl == 0) and (detectionCount > detectionThreshold)):
+        zTarget = zDrone
+        autoControl = 1
+
+    if ((autoControl == 1) and (framesWithoutDrone >= detectionLostThreshold)):
+        autoControl = 0
+        detectionCount = 0
+        throttle = throttle_middle
 
     # abort if we lost the drone for about 200 secs
     if framesWithoutDrone >= 6000:
@@ -295,10 +341,7 @@ while True:
             time.sleep(0.1)
             k += 1
         break
-
-    # wait 1 ms for a key to be pressed
-    key = cv2.waitKey(20)
-
+    
     # record the position and orientation
     xRecord.append(xDrone)
     yRecord.append(yDrone)
@@ -308,22 +351,18 @@ while True:
     # filter x
     xFiltered = lfilter(b, a, xRecord)
     xDroneFiltered = xFiltered[-1]
-    xFilteredRecord.append(xDroneFiltered)
 
     # filter y
     yFiltered = lfilter(b, a, yRecord)
     yDroneFiltered = yFiltered[-1]
-    yFilteredRecord.append(yDroneFiltered)
 
     # filter z
     zFiltered = lfilter(b, a, zRecord)
     zDroneFiltered = zFiltered[-1]
-    zFilteredRecord.append(zDroneFiltered)
 
     # filter angle
     angleFiltered = lfilter(b, a, angleRecord)
     angleDroneFiltered = angleFiltered[-1]
-    angleFilteredRecord.append(angleDroneFiltered)
 
     # implement a PID controller
 
@@ -338,10 +377,10 @@ while True:
     if ii == len(xTarget):
         ii = 0
 
-    xError = xTarget[ii]-xDroneFiltered
+    xError = -(xTarget[ii]-xDroneFiltered)
     yError = yTarget[ii]-yDroneFiltered
-    zError = -(zTarget[ii]-zDroneFiltered)
-    angleError = getAngleError(angleDroneFiltered, angleTarget[ii], angleError_old)
+    zError = int(zTarget)-zDroneFiltered
+    angleError = -(getAngleError(angleDroneFiltered, angleTarget[ii], angleError_old))
     #print("Angle={:.1f}   Target={:.1f} Error={:.1f} ".format(angleDroneFiltered, angleTarget[ii], angleError))
 
     #print("Z={:.1f}   Target={:.1f} Error={:.1f} ".format(zDroneFiltered, zTarget[ii], zError))
@@ -367,10 +406,10 @@ while True:
     angleErrorD = angleError-angleError_old
 
     # compute commands
-    xCommand = KPx*xError + KIx*xErrorI + KDx*xErrorD
-    yCommand = KPy*yError + KIy*yErrorI + KDy*yErrorD
-    zCommand = KPz*zError + KIz*zErrorI + KDz*zErrorD
-    angleCommand = KPangle*angleError + KIangle*angleErrorI + KDangle*angleErrorD
+    xCommand = KPx*xError + KIx*xErrorI*fps/60 + KDx*xErrorD*fps/60
+    yCommand = KPy*yError + KIy*yErrorI*fps/60 + KDy*yErrorD*fps/60
+    zCommand = KPz*zError + KIz*zErrorI*fps/60 + KDz*zErrorD*fps/60
+    angleCommand = KPangle*angleError + KIangle*angleErrorI*fps/60 + KDangle*angleErrorD*fps/60
 
     # throttle command is zCommand
     # commands are relative to the middle PPM values
@@ -397,39 +436,69 @@ while True:
     elevatorCommand = round(clamp(elevatorCommand, 1000, 2000))
     rudderCommand = round(clamp(rudderCommand, 1000, 2000))
 
-    #elevatorCommand = 1500
-    #aileronCommand = 1500
+
+    if (autoControl == 0):
+        aileron = aileron_middle
+        elevator = elevator_middle
+        rudder = rudder_middle
+        
+        if keyboard.is_pressed('w'): #throttle up
+            throttle += throttle_rate
+
+        elif keyboard.is_pressed('s'): #throttle down
+            throttle -= throttle_rate
+
+        if keyboard.is_pressed('a'): #yaw left
+            rudder -= rudder_rate
+
+        if keyboard.is_pressed('d'): #yaw right
+            rudder += rudder_rate
+
+        if keyboard.is_pressed('right'): #roll right
+            aileron += aileron_rate
+
+        if keyboard.is_pressed('left'): #roll left
+            aileron -= aileron_rate
+        
+        if keyboard.is_pressed('up'): #pitch forward
+            elevator += elevator_rate
+
+        if keyboard.is_pressed('down'): #pitch back
+            elevator -= elevator_rate
+
+            
+        throttleCommand = clamp (throttle, throttle_off, 2000)
+        aileronCommand = clamp (aileron, 1000, 2000)
+        elevatorCommand = clamp (elevator, 1000, 2000)
+        rudderCommand = clamp (rudder, 1000, 2000)
+    
 
     # create the command to send to Arduino
     command = "%i,%i,%i,%i" % (throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
 
-    #print("[Location]: x={:.0f} y={:.0f} z={:.0f} angle={:.0f}".format(xDrone, yDrone, zDrone, angleDrone))
     # print the projected commands
-    print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(throttleCommand, aileronCommand, elevatorCommand, rudderCommand))
+    #print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(throttleCommand, aileronCommand, elevatorCommand, rudderCommand))
 
     # send to Arduino via serial port
     command = command + "\n"
     arduino.write(command.encode())
 
-    xErrorRecord.append(xError)
-    yErrorRecord.append(yError)
-    zErrorRecord.append(zError)
-    angleErrorRecord.append(angleError)
-
-    elevatorRecord.append(elevatorCommand)
-    aileronRecord.append(aileronCommand)
-    throttleRecord.append(throttleCommand)
-    rudderRecord.append(rudderCommand)
-
     # if ESC is pressed, stop the program
-    if key == 27:
-        print("Exit!")
-        break
+    #if key == 27:
+        #print("Exit!")
+        #break
 
     loopsCount += 1
  
     #--- Display the frame
     #cv2.imshow('frame', frame)
+    
+    # wait 1 ms for a key to be pressed
+    #key = cv2.waitKey(2)
+
+    if keyboard.is_pressed('esc'): #ESC
+        print("Exit!")
+        break
 
 
 time.sleep(0.5)
@@ -443,7 +512,6 @@ while(i < 10):
     i += 1
 
 # release video
-out.release()
 cv2.destroyAllWindows()
 
 # close the connection and reopen it

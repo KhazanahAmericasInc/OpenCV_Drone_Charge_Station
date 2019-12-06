@@ -194,11 +194,11 @@ void FQ777124_send_packet(u8 bind)
         }
         else if (108 < trim_mod && trim_mod) // pitch
         {
-          trim_val = map(ppm[FQ777124_TRIM_CHAN_PITCH], PPM_MIN, PPM_MAX, 0x01, 0x3E) + 0xA0 - 0x1F;
+          trim_val = map(ppm2[FQ777124_TRIM_CHAN_PITCH], PPM_MIN, PPM_MAX, 0x01, 0x3E) + 0xA0 - 0x1F;
         }
         else // roll
         {
-          trim_val = map(ppm[FQ777124_TRIM_CHAN_ROLL], PPM_MIN, PPM_MAX, 0x01, 0x3E) + 0x60 - 0x1F;
+          trim_val = map(ppm2[FQ777124_TRIM_CHAN_ROLL], PPM_MIN, PPM_MAX, 0x01, 0x3E) + 0x60 - 0x1F;
         }
         // throt, yaw, pitch, roll, trims, flags/left button,00,right button
         //0-3 0x00-0x64
@@ -207,10 +207,10 @@ void FQ777124_send_packet(u8 bind)
         //6 00 ??
         //7 checksum - add values in other fields 
 
-        packet[0] = map(ppm[THROTTLE],PPM_MIN, PPM_MAX,0,0x64);
-        packet[1] = map(ppm[RUDDER],PPM_MIN, PPM_MAX,0,0x64);
-        packet[2] = map(ppm[ELEVATOR],PPM_MIN, PPM_MAX,0,0x64);
-        packet[3] = map(ppm[AILERON],PPM_MIN, PPM_MAX,0,0x64);
+        packet[0] = map(ppm2[THROTTLE],PPM_MIN, PPM_MAX,0,0x64);
+        packet[1] = map(ppm2[RUDDER],PPM_MIN, PPM_MAX,0,0x64);
+        packet[2] = map(ppm2[ELEVATOR],PPM_MIN, PPM_MAX,0,0x64);
+        packet[3] = map(ppm2[AILERON],PPM_MIN, PPM_MAX,0,0x64);
         packet[4] = trim_val; // calculated above
         packet[5] = GET_FLAG(AUX2, FQ777124_FLAG_FLIP)
                   | GET_FLAG(AUX5, FQ777124_FLAG_HEADLESS)
@@ -238,4 +238,3 @@ void FQ777124_send_packet(u8 bind)
     NRF24L01_WritePayload(FQ777124_dpl_packet, packet_len);
     NRF24L01_WritePayload(FQ777124_dpl_packet, packet_len);
 }
-

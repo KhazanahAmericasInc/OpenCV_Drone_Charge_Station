@@ -101,7 +101,7 @@ void CG023_bind()
         digitalWrite(ledPin, bitRead(counter,3)); //check for 0bxxxx1xxx to flash LED
         delayMicroseconds(cg_packet_period);
     }
-    digitalWrite(ledPin, HIGH); // LED on at end of bind
+    //digitalWrite(ledPin, HIGH); // LED on at end of bind
 }
 
 void CG023_WritePacket(uint8_t init)
@@ -111,15 +111,15 @@ void CG023_WritePacket(uint8_t init)
     packet[2] = CG023_txid[1];
     packet[3] = 0;
     packet[4] = 0;
-    packet[5] = map(ppm[THROTTLE], PPM_MIN, PPM_MAX, 0, 255) ; // throttle stick
-    if(ppm[RUDDER] < PPM_MID - 9 )
-        packet[6] = map(ppm[RUDDER], PPM_MID , PPM_MIN, 0x80 , 0xBC);
-    else if(ppm[RUDDER] > PPM_MID + 9)
-        packet[6] = map(ppm[RUDDER], PPM_MID , PPM_MAX, 0x00 , 0x3C);
+    packet[5] = map(ppm2[THROTTLE], PPM_MIN, PPM_MAX, 0, 255) ; // throttle stick
+    if(ppm2[RUDDER] < PPM_MID - 9 )
+        packet[6] = map(ppm2[RUDDER], PPM_MID , PPM_MIN, 0x80 , 0xBC);
+    else if(ppm2[RUDDER] > PPM_MID + 9)
+        packet[6] = map(ppm2[RUDDER], PPM_MID , PPM_MAX, 0x00 , 0x3C);
     else
     packet[6] = 0x00;
-    packet[7] = map(ppm[ELEVATOR], PPM_MIN, PPM_MAX, 0xBB, 0x43); // elevator stick 0xBB - 0x7F - 0x43
-    packet[8] = map(ppm[AILERON], PPM_MIN, PPM_MAX, 0xBB, 0x43); // aileron stick 0xBB - 0x7F - 0x43
+    packet[7] = map(ppm2[ELEVATOR], PPM_MIN, PPM_MAX, 0xBB, 0x43); // elevator stick 0xBB - 0x7F - 0x43
+    packet[8] = map(ppm2[AILERON], PPM_MIN, PPM_MAX, 0xBB, 0x43); // aileron stick 0xBB - 0x7F - 0x43
     packet[9] = 0x20; // throttle trim, neutral = 0x20
     packet[10] = 0x20; // rudder trim, neutral = 0x20
     packet[11] = 0x40; // elevator trim, neutral = 0x40
@@ -128,28 +128,28 @@ void CG023_WritePacket(uint8_t init)
     switch(current_protocol) {
         case PROTO_CG023:
             packet[13] = CG023_RATE_100; // 100% rate
-            if(ppm[AUX1]>PPM_MAX_COMMAND)
+            if(ppm2[AUX1]>PPM_MAX_COMMAND)
                 packet[13] |= CG023_LED_OFF;
-            if(ppm[AUX2]>PPM_MAX_COMMAND)
+            if(ppm2[AUX2]>PPM_MAX_COMMAND)
                 packet[13] |= CG023_FLIP;
-            if(ppm[AUX3]>PPM_MAX_COMMAND)
+            if(ppm2[AUX3]>PPM_MAX_COMMAND)
                 packet[13] |= CG023_STILL;
-            if(ppm[AUX4]>PPM_MAX_COMMAND)
+            if(ppm2[AUX4]>PPM_MAX_COMMAND)
                 packet[13] |= CG023_VIDEO;
-            if(ppm[AUX5]>PPM_MAX_COMMAND)
+            if(ppm2[AUX5]>PPM_MAX_COMMAND)
                 packet[13] |= CG023_EASY;
             break;
         case PROTO_YD829:
             packet[13] = YD_FLAG_RATE_HIGH;
             // reverse aileron direction
             packet[8] = 0xFE - packet[8];
-            if(ppm[AUX2] > PPM_MAX_COMMAND)
+            if(ppm2[AUX2] > PPM_MAX_COMMAND)
                 packet[13] |= YD_FLAG_FLIP;
-            if(ppm[AUX3] > PPM_MAX_COMMAND)
+            if(ppm2[AUX3] > PPM_MAX_COMMAND)
                 packet[13] |= YD_FLAG_STILL;
-            if(ppm[AUX4] > PPM_MAX_COMMAND)
+            if(ppm2[AUX4] > PPM_MAX_COMMAND)
                 packet[13] |= YD_FLAG_VIDEO;
-            if(ppm[AUX5] > PPM_MAX_COMMAND)
+            if(ppm2[AUX5] > PPM_MAX_COMMAND)
                 packet[13] |= YD_FLAG_HEADLESS;
             break;
     }

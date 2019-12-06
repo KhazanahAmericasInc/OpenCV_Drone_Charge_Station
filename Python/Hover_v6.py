@@ -1,5 +1,5 @@
-##Attempt to use Playstation EYE
-
+##Playstation eye
+##Trying to increase code fps
 
 """
 This demo calculates multiple things for different scenarios.
@@ -40,8 +40,12 @@ from scipy.signal import butter, lfilter
 #Position Targets
 xTarget = [0]
 yTarget = [0]
-zTarget = [55]
+zTarget = 55.1
 angleTarget = [0]
+
+landing = 70
+landingcut = 52
+maxheight = 30
 
 #--- Define Tag
 id_to_find  = 72
@@ -103,21 +107,9 @@ ii = 0
 # record everything
 timeRecord = []
 xRecord = []
-xFilteredRecord = []
 yRecord = []
-yFilteredRecord = []
 zRecord = []
-zFilteredRecord = []
 angleRecord = []
-angleFilteredRecord = []
-xErrorRecord = []
-yErrorRecord = []
-zErrorRecord = []
-angleErrorRecord = []
-aileronRecord = []
-elevatorRecord = []
-throttleRecord = []
-rudderRecord = []
 
 # define a clamping function
 def clamp(n, minimum, maximum):
@@ -182,9 +174,6 @@ loopsCount = 0
 # baudrate of 115200
 arduino = serial.Serial(usb_port, 115200, timeout=.01)
 
-# wait a bit for the connection to settle
-time.sleep(1)
-
 #--- Get the camera calibration path
 calib_path  = ""
 camera_matrix   = np.loadtxt(calib_path+'cameraMatrix_Logitech.txt', delimiter=',')
@@ -222,13 +211,31 @@ time.sleep(1)
 start = time.perf_counter()
 end = start
 
+key = 22
+
+zTarget = 69.1
+velocity = 0.1
+
+
+printcount = 0
 while True:
 
+    zTarget += velocity
+
+    if (zTarget < maxheight or zTarget > landing):
+        velocity = -velocity
+    
+    
     start = time.perf_counter()
     fps = 1/(start-end)
     end = start
-
-    print (fps)
+    printcount +=1
+    if (printcount > 40):
+        #print (fps)
+        printcount = 0
+    print (zTarget)
+    
+    
     # drone detected or not
     droneDetected = False
 
@@ -297,7 +304,8 @@ while True:
         break
 
     # wait 1 ms for a key to be pressed
-    key = cv2.waitKey(20)
+    key = cv2.waitKey(5)
+    
 
     # record the position and orientation
     xRecord.append(xDrone)
@@ -308,22 +316,18 @@ while True:
     # filter x
     xFiltered = lfilter(b, a, xRecord)
     xDroneFiltered = xFiltered[-1]
-    xFilteredRecord.append(xDroneFiltered)
 
     # filter y
     yFiltered = lfilter(b, a, yRecord)
     yDroneFiltered = yFiltered[-1]
-    yFilteredRecord.append(yDroneFiltered)
 
     # filter z
     zFiltered = lfilter(b, a, zRecord)
     zDroneFiltered = zFiltered[-1]
-    zFilteredRecord.append(zDroneFiltered)
 
     # filter angle
     angleFiltered = lfilter(b, a, angleRecord)
     angleDroneFiltered = angleFiltered[-1]
-    angleFilteredRecord.append(angleDroneFiltered)
 
     # implement a PID controller
 
@@ -340,7 +344,7 @@ while True:
 
     xError = xTarget[ii]-xDroneFiltered
     yError = yTarget[ii]-yDroneFiltered
-    zError = -(zTarget[ii]-zDroneFiltered)
+    zError = -(int(zTarget)-zDroneFiltered)
     angleError = getAngleError(angleDroneFiltered, angleTarget[ii], angleError_old)
     #print("Angle={:.1f}   Target={:.1f} Error={:.1f} ".format(angleDroneFiltered, angleTarget[ii], angleError))
 
@@ -367,10 +371,10 @@ while True:
     angleErrorD = angleError-angleError_old
 
     # compute commands
-    xCommand = KPx*xError + KIx*xErrorI + KDx*xErrorD
-    yCommand = KPy*yError + KIy*yErrorI + KDy*yErrorD
-    zCommand = KPz*zError + KIz*zErrorI + KDz*zErrorD
-    angleCommand = KPangle*angleError + KIangle*angleErrorI + KDangle*angleErrorD
+    xCommand = KPx*xError + KIx*xErrorI*fps/60 + KDx*xErrorD*fps/60
+    yCommand = KPy*yError + KIy*yErrorI*fps/60 + KDy*yErrorD*fps/60
+    zCommand = KPz*zError + KIz*zErrorI*fps/60 + KDz*zErrorD*fps/60
+    angleCommand = KPangle*angleError + KIangle*angleErrorI*fps/60 + KDangle*angleErrorD*fps/60
 
     # throttle command is zCommand
     # commands are relative to the middle PPM values
@@ -397,29 +401,18 @@ while True:
     elevatorCommand = round(clamp(elevatorCommand, 1000, 2000))
     rudderCommand = round(clamp(rudderCommand, 1000, 2000))
 
-    #elevatorCommand = 1500
-    #aileronCommand = 1500
+    if (zTarget > landingcut):
+        throttleCommand = 1000
 
     # create the command to send to Arduino
     command = "%i,%i,%i,%i" % (throttleCommand, aileronCommand, elevatorCommand, rudderCommand)
 
-    #print("[Location]: x={:.0f} y={:.0f} z={:.0f} angle={:.0f}".format(xDrone, yDrone, zDrone, angleDrone))
     # print the projected commands
-    print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(throttleCommand, aileronCommand, elevatorCommand, rudderCommand))
+    #print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(throttleCommand, aileronCommand, elevatorCommand, rudderCommand))
 
     # send to Arduino via serial port
     command = command + "\n"
     arduino.write(command.encode())
-
-    xErrorRecord.append(xError)
-    yErrorRecord.append(yError)
-    zErrorRecord.append(zError)
-    angleErrorRecord.append(angleError)
-
-    elevatorRecord.append(elevatorCommand)
-    aileronRecord.append(aileronCommand)
-    throttleRecord.append(throttleCommand)
-    rudderRecord.append(rudderCommand)
 
     # if ESC is pressed, stop the program
     if key == 27:
@@ -429,7 +422,7 @@ while True:
     loopsCount += 1
  
     #--- Display the frame
-    #cv2.imshow('frame', frame)
+    cv2.imshow('frame', frame)
 
 
 time.sleep(0.5)

@@ -196,7 +196,7 @@ void HiSky_build_ch_data()
     const uint8_t ch[]={AILERON, ELEVATOR, THROTTLE, RUDDER, AUX1, AUX2, AUX3, AUX4};
     for (i = 0; i< 8; i++) {
         j=ch[i];
-        temp=map(ppm[j], PPM_MIN, PPM_MAX, 0, 1000);
+        temp=map(ppm2[j], PPM_MIN, PPM_MAX, 0, 1000);
         if (j == THROTTLE || j == AILERON || j == RUDDER || j == AUX2)
             temp = 1000 -temp;
         if (j == AUX3)

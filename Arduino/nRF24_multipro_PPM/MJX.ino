@@ -33,7 +33,7 @@ u8 mjx_format;
 #define MJX_CHANNEL_FLIP        AUX2
 #define MJX_CHANNEL_PICTURE     AUX3
 #define MJX_CHANNEL_VIDEO       AUX4
-#define MJX_CHANNEL_HEADLESS    AUX5
+#define MJX_CHANNEL_HEADLESS    AUX6
 #define MJX_CHANNEL_RTH         AUX6
 #define MJX_CHANNEL_AUTOFLIP    AUX7  // X800, X600
 #define MJX_CHANNEL_PAN         AUX7  // H26D
@@ -76,7 +76,7 @@ u8 mjx_checksum()
 // Channel values are sign + magnitude 8bit values
 u8 mjx_convert_channel(u8 num)
 {
-    u8 val = map(ppm[num], PPM_MIN, PPM_MAX, 0, 255);
+    u8 val = map(ppm2[num], PPM_MIN, PPM_MAX, 0, 255);
     return (val < 128 ? 127-val : val);	
 }
 
@@ -93,11 +93,11 @@ u8 mjx_pan_tilt_value()
     
     count++;
 
-    int32_t ch = ppm[MJX_CHANNEL_PAN];
+    int32_t ch = ppm2[MJX_CHANNEL_PAN];
     if ((ch < PPM_MIN_COMMAND || ch > PPM_MAX_COMMAND) && (count & PAN_TILT_COUNT))
         pan = ch < PPM_MID ? PAN_DOWN : PAN_UP;
 
-    ch = ppm[MJX_CHANNEL_TILT];
+    ch = ppm2[MJX_CHANNEL_TILT];
     if ((ch < PPM_MIN_COMMAND || ch > PPM_MAX_COMMAND) && (count & PAN_TILT_COUNT))
         return pan + (ch < PPM_MID ? TILT_DOWN : TILT_UP);
     
@@ -107,7 +107,7 @@ u8 mjx_pan_tilt_value()
 #define CHAN2TRIM(X) (((X) & 0x80 ? (X) : 0x7f - (X)) >> 1)
 void mjx_send_packet(u8 bind)
 {
-    packet[0] = map(ppm[THROTTLE], PPM_MIN, PPM_MAX, 0, 255);
+    packet[0] = map(ppm2[THROTTLE], PPM_MIN, PPM_MAX, 0, 255);
     packet[1] = mjx_convert_channel(RUDDER);          // rudder
     packet[4] = 0x40;         // rudder does not work well with dyntrim
     packet[2] = mjx_convert_channel(ELEVATOR);   // elevator
@@ -276,8 +276,8 @@ void MJX_bind()
     while(mjx_counter--) {
         mjx_send_packet(1);
         delayMicroseconds(MJX_PACKET_PERIOD);
-        digitalWrite(ledPin, mjx_counter & 0x10);
+        //digitalWrite(ledPin, mjx_counter & 0x10);
     }
     mjx_init2();
-    digitalWrite(ledPin, HIGH);
+    //digitalWrite(ledPin, HIGH);
 }

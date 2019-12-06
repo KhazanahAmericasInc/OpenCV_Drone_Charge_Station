@@ -80,10 +80,10 @@ void Bayang_bind()
     while(counter) {
         Bayang_send_packet(1);
         delayMicroseconds(BAYANG_PACKET_PERIOD);
-        digitalWrite(ledPin, counter-- & 0x10);
+        //digitalWrite(ledPin, counter-- & 0x10);
     }
     XN297_SetTXAddr(Bayang_rx_tx_addr, BAYANG_ADDRESS_LENGTH);
-    digitalWrite(ledPin, HIGH);
+    //digitalWrite(ledPin, HIGH);
 }
 
 #define DYNTRIM(chval) ((u8)((chval >> 2) & 0xfc))
@@ -113,16 +113,16 @@ void Bayang_send_packet(u8 bind)
                   | GET_FLAG(AUX3, BAYANG_FLAG_SNAPSHOT)
                   | GET_FLAG(AUX4, BAYANG_FLAG_VIDEO);
         packet[3] = GET_FLAG(AUX1, BAYANG_FLAG_INVERT);
-        chanval.value = map(ppm[AILERON], PPM_MIN, PPM_MAX, 0, 0x3ff);   // aileron
+        chanval.value = map(ppm2[AILERON], PPM_MIN, PPM_MAX, 0, 0x3ff);   // aileron
         packet[4] = chanval.bytes.msb + DYNTRIM(chanval.value);
         packet[5] = chanval.bytes.lsb;
-        chanval.value = map(ppm[ELEVATOR], PPM_MIN, PPM_MAX, 0, 0x3ff);   // elevator
+        chanval.value = map(ppm2[ELEVATOR], PPM_MIN, PPM_MAX, 0, 0x3ff);   // elevator
         packet[6] = chanval.bytes.msb + DYNTRIM(chanval.value);
         packet[7] = chanval.bytes.lsb;
-        chanval.value = map(ppm[THROTTLE], PPM_MIN, PPM_MAX, 0, 0x3ff);   // throttle
+        chanval.value = map(ppm2[THROTTLE], PPM_MIN, PPM_MAX, 0, 0x3ff);   // throttle
         packet[8] = chanval.bytes.msb + 0x7c;
         packet[9] = chanval.bytes.lsb;
-        chanval.value = map(ppm[RUDDER], PPM_MIN, PPM_MAX, 0, 0x3ff);   // rudder
+        chanval.value = map(ppm2[RUDDER], PPM_MIN, PPM_MAX, 0, 0x3ff);   // rudder
         packet[10] = chanval.bytes.msb + DYNTRIM(chanval.value);
         packet[11] = chanval.bytes.lsb;
     }

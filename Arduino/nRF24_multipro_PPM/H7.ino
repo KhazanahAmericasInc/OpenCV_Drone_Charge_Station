@@ -126,26 +126,26 @@ uint8_t H7_calcChecksum() {
 void H7_WritePacket()
 {
     static uint8_t channel=0;
-    packet[0] = map(ppm[THROTTLE], PPM_MIN, PPM_MAX, 0xE1, 0x00);
-    packet[1] = map(ppm[RUDDER], PPM_MIN, PPM_MAX, 0xE1, 0x00);
-    packet[2] = map(ppm[AILERON], PPM_MIN, PPM_MAX, 0x00, 0xE1);
-    packet[3] = map(ppm[ELEVATOR], PPM_MIN, PPM_MAX, 0x00, 0xE1);
-    packet[4] = map(ppm[AUX6], PPM_MIN, PPM_MAX, 0x3f, 0x00); // elevator trim 0x3f - 0x00
-    packet[5] = map(ppm[AUX7], PPM_MIN, PPM_MAX, 0x3f, 0x00); // aileron trim 0x3f - 0x00
+    packet[0] = map(ppm2[THROTTLE], PPM_MIN, PPM_MAX, 0xE1, 0x00);
+    packet[1] = map(ppm2[RUDDER], PPM_MIN, PPM_MAX, 0xE1, 0x00);
+    packet[2] = map(ppm2[AILERON], PPM_MIN, PPM_MAX, 0x00, 0xE1);
+    packet[3] = map(ppm2[ELEVATOR], PPM_MIN, PPM_MAX, 0x00, 0xE1);
+    packet[4] = map(ppm2[AUX6], PPM_MIN, PPM_MAX, 0x3f, 0x00); // elevator trim 0x3f - 0x00
+    packet[5] = map(ppm2[AUX7], PPM_MIN, PPM_MAX, 0x3f, 0x00); // aileron trim 0x3f - 0x00
     packet[6] = 0x40; // flags (default is 0x00 on H7, 0x40 on MT9916 stock TX)
-    if(ppm[AUX2] > PPM_MAX_COMMAND) {
+    if(ppm2[AUX2] > PPM_MAX_COMMAND) {
         packet[6] |= H7_FLAG_FLIP;
     }        
-    if(ppm[AUX1] > PPM_MAX_COMMAND) {
+    if(ppm2[AUX1] > PPM_MAX_COMMAND) {
         packet[6] |= H7_FLAG_RATE2; 
     }        
-    else if(ppm[AUX1] > PPM_MIN_COMMAND) {
+    else if(ppm2[AUX1] > PPM_MIN_COMMAND) {
         packet[6] |= H7_FLAG_RATE1;
     }        
-    if(ppm[AUX3] > PPM_MAX_COMMAND) {
+    if(ppm2[AUX3] > PPM_MAX_COMMAND) {
         packet[6] |= H7_FLAG_SNAPSHOT;
     }        
-    if(ppm[AUX4] > PPM_MAX_COMMAND) {
+    if(ppm2[AUX4] > PPM_MAX_COMMAND) {
         packet[6] |= H7_FLAG_VIDEO;
     }        
     packet[7] = H7_mys_byte[channel]; // looks like this byte has no importance actually   

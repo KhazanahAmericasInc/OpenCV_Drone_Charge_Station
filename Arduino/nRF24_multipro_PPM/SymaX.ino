@@ -73,19 +73,19 @@ void SYMAX_build_packet_x5c(uint8_t bind)
     }
     else
     {
-        packet[0] = map(ppm[THROTTLE], PPM_MIN, PPM_MAX, 0x00, 0xFF); // throttle
-        if(ppm[RUDDER] < PPM_MID)
-            packet[1] = map(ppm[RUDDER], PPM_MID, PPM_MIN, 0x00, 0x7F);
+        packet[0] = map(ppm2[THROTTLE], PPM_MIN, PPM_MAX, 0x00, 0xFF); // throttle
+        if(ppm2[RUDDER] < PPM_MID)
+            packet[1] = map(ppm2[RUDDER], PPM_MID, PPM_MIN, 0x00, 0x7F);
         else
-            packet[1] = map(ppm[RUDDER], PPM_MID, PPM_MAX, 0x80, 0xFF);
-        if(ppm[ELEVATOR] < PPM_MID)
-            packet[2] = map(ppm[ELEVATOR], PPM_MID, PPM_MIN, 0x80, 0xFF);
+            packet[1] = map(ppm2[RUDDER], PPM_MID, PPM_MAX, 0x80, 0xFF);
+        if(ppm2[ELEVATOR] < PPM_MID)
+            packet[2] = map(ppm2[ELEVATOR], PPM_MID, PPM_MIN, 0x80, 0xFF);
         else
-            packet[2] = map(ppm[ELEVATOR], PPM_MID, PPM_MAX, 0x00, 0x7F);
-        if(ppm[AILERON] < PPM_MID)
-            packet[3] = map(ppm[AILERON], PPM_MID, PPM_MIN, 0x00, 0x7F);
+            packet[2] = map(ppm2[ELEVATOR], PPM_MID, PPM_MAX, 0x00, 0x7F);
+        if(ppm2[AILERON] < PPM_MID)
+            packet[3] = map(ppm2[AILERON], PPM_MID, PPM_MIN, 0x00, 0x7F);
         else
-            packet[3] = map(ppm[AILERON], PPM_MID, PPM_MAX, 0x80, 0xFF);
+            packet[3] = map(ppm2[AILERON], PPM_MID, PPM_MAX, 0x80, 0xFF);
         packet[4] = X5C_CHAN2TRIM(packet[1] ^ 0x80);     // drive trims for extra control range
         packet[5] = X5C_CHAN2TRIM(packet[2] ^ 0x80);
         packet[6] = X5C_CHAN2TRIM(packet[3] ^ 0x80);
@@ -120,31 +120,31 @@ void SYMAX_build_packet(uint8_t bind)
     }
     else
     {
-        packet[0] = map(ppm[THROTTLE], PPM_MIN, PPM_MAX, 0x00, 0xFF); // throttle;
-        if(ppm[ELEVATOR] < PPM_MID)
-            packet[1] = map(ppm[ELEVATOR], PPM_MID, PPM_MIN, 0x80, 0xFF);
+        packet[0] = map(ppm2[THROTTLE], PPM_MIN, PPM_MAX, 0x00, 0xFF); // throttle;
+        if(ppm2[ELEVATOR] < PPM_MID)
+            packet[1] = map(ppm2[ELEVATOR], PPM_MID, PPM_MIN, 0x80, 0xFF);
         else
-            packet[1] = map(ppm[ELEVATOR], PPM_MID, PPM_MAX, 0x00, 0x7F);
-        if(ppm[RUDDER] < PPM_MID)
-            packet[2] = map(ppm[RUDDER], PPM_MID, PPM_MIN, 0x00, 0x7F);
+            packet[1] = map(ppm2[ELEVATOR], PPM_MID, PPM_MAX, 0x00, 0x7F);
+        if(ppm2[RUDDER] < PPM_MID)
+            packet[2] = map(ppm2[RUDDER], PPM_MID, PPM_MIN, 0x00, 0x7F);
         else
-            packet[2] = map(ppm[RUDDER], PPM_MID, PPM_MAX, 0x80, 0xFF);
-        if(ppm[AILERON] < PPM_MID)
-            packet[3] = map(ppm[AILERON], PPM_MID, PPM_MIN, 0x00, 0x7F);
+            packet[2] = map(ppm2[RUDDER], PPM_MID, PPM_MAX, 0x80, 0xFF);
+        if(ppm2[AILERON] < PPM_MID)
+            packet[3] = map(ppm2[AILERON], PPM_MID, PPM_MIN, 0x00, 0x7F);
         else
-            packet[3] = map(ppm[AILERON], PPM_MID, PPM_MAX, 0x80, 0xFF);
+            packet[3] = map(ppm2[AILERON], PPM_MID, PPM_MAX, 0x80, 0xFF);
         packet[4] = 0;
-        if(ppm[AUX4] > PPM_MAX_COMMAND)
+        if(ppm2[AUX4] > PPM_MAX_COMMAND)
             packet[4] |= SYMAX_FLAG_VIDEO;
-        if(ppm[AUX3] > PPM_MAX_COMMAND)
+        if(ppm2[AUX3] > PPM_MAX_COMMAND)
             packet[4] |= SYMAX_FLAG_PICTURE;
         // use trims to extend controls
         packet[5] = (packet[1] >> 2) | 0xc0;  // always high rates (bit 7 is rate control)
         packet[6] = (packet[2] >> 2);
         packet[7] = (packet[3] >> 2);
-        if(ppm[AUX2] > PPM_MAX_COMMAND)
+        if(ppm2[AUX2] > PPM_MAX_COMMAND)
             packet[6] |= SYMAX_FLAG_FLIP;
-        if(ppm[AUX5] > PPM_MAX_COMMAND)
+        if(ppm2[AUX5] > PPM_MAX_COMMAND)
             packet[7] |= SYMAX_FLAG_HEADLESS;
         packet[8] = 0x00;
     }

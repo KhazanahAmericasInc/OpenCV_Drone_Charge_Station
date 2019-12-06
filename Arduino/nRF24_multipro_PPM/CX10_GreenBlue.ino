@@ -121,7 +121,7 @@ void CX10_bind()
                 break;
         }
         digitalWrite(ledPin, counter-- & 0x10);
-        if(ppm[AUX8] > PPM_MAX_COMMAND) {
+        if(ppm2[AUX8] > PPM_MAX_COMMAND) {
             reset = true;
             return;
         }
@@ -140,30 +140,30 @@ void CX10_Write_Packet(uint8_t init)
     packet[3] = CX10_txid[2];
     packet[4] = CX10_txid[3];
     // packet[5] to [8] (aircraft id) is filled during bind for blue board CX10
-    packet[5+offset] = lowByte(3000-ppm[AILERON]);
-    packet[6+offset]= highByte(3000-ppm[AILERON]);
-    packet[7+offset]= lowByte(3000-ppm[ELEVATOR]);
-    packet[8+offset]= highByte(3000-ppm[ELEVATOR]);
-    packet[9+offset]= lowByte(ppm[THROTTLE]);
-    packet[10+offset]= highByte(ppm[THROTTLE]);
-    packet[11+offset]= lowByte(ppm[RUDDER]);
-    packet[12+offset]= highByte(ppm[RUDDER]);
-    if(ppm[AUX2] > PPM_MAX_COMMAND)
+    packet[5+offset] = lowByte(3000-ppm2[AILERON]);
+    packet[6+offset]= highByte(3000-ppm2[AILERON]);
+    packet[7+offset]= lowByte(3000-ppm2[ELEVATOR]);
+    packet[8+offset]= highByte(3000-ppm2[ELEVATOR]);
+    packet[9+offset]= lowByte(ppm2[THROTTLE]);
+    packet[10+offset]= highByte(ppm2[THROTTLE]);
+    packet[11+offset]= lowByte(ppm2[RUDDER]);
+    packet[12+offset]= highByte(ppm2[RUDDER]);
+    if(ppm2[AUX2] > PPM_MAX_COMMAND)
         packet[12+offset] |= 0x10; // flip flag
     // rate / mode
-    if(ppm[AUX1] > PPM_MAX_COMMAND) // mode 3 / headless on CX-10A
+    if(ppm2[AUX1] > PPM_MAX_COMMAND) // mode 3 / headless on CX-10A
         packet[13+offset] = 0x02;
-    else if(ppm[AUX1] < PPM_MIN_COMMAND) // mode 1
+    else if(ppm2[AUX1] < PPM_MIN_COMMAND) // mode 1
         packet[13+offset] = 0x00;
     else // mode 2
         packet[13+offset] = 0x01;
     packet[14+offset] = 0x00;
     if(current_protocol == PROTO_CX10_BLUE) {
         // snapshot (CX10-C)
-        if(ppm[AUX3] < PPM_MAX_COMMAND)
+        if(ppm2[AUX3] < PPM_MAX_COMMAND)
             packet[13+offset] |= 0x10;
         // video recording (CX10-C)
-        if(ppm[AUX4] > PPM_MAX_COMMAND)
+        if(ppm2[AUX4] > PPM_MAX_COMMAND)
             packet[13+offset] |= 0x08;
     }    
 
