@@ -6,12 +6,14 @@ From https://opencv-python-tutroals.readthedocs.org/en/latest/py_tutorials/py_ca
 Calling:
 cameracalib.py  <folder> <image type> <num rows> <num cols> <cell dimension>
 
-like cameracalib.py folder_name png
+Example:
+python cameracalib.py Pics jpg 9 6 25
+
 
 --h for help
 """
-__author__ = "Tiziano Fiorenzani"
-__date__ = "01/06/2018"
+__author__ = "Craig Crundwell"
+__date__ = "11/22/2019"
 
 import numpy as np
 import cv2
@@ -24,7 +26,7 @@ nRows = 9
 nCols = 6
 dimension = 25 #- mm
 
-workingFolder   = "./camera_01"
+workingFolder   = "./Pics PS Eye"
 imageType       = 'jpg'
 #------------------------------------------
 
@@ -146,7 +148,7 @@ if (nPatternFound > 1):
     np.savetxt(filename, dist, delimiter=',')
 
     mean_error = 0
-    for i in xrange(len(objpoints)):
+    for i in range(len(objpoints)):
         imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], mtx, dist)
         error = cv2.norm(imgpoints[i],imgpoints2, cv2.NORM_L2)/len(imgpoints2)
         mean_error += error

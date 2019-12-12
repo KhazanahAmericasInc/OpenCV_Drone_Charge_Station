@@ -40,7 +40,7 @@ from scipy.signal import butter, lfilter
 #Position Targets
 xTarget = [0]
 yTarget = [0]
-zTarget = [55]
+zTarget = [35]
 angleTarget = [0]
 
 #--- Define Tag
@@ -272,10 +272,10 @@ while True:
         #-- Get the attitude in terms of euler 321 (Needs to be flipped first)
         roll_marker, pitch_marker, yaw_marker = rotationMatrixToEulerAngles(R_flip*R_tc)
 
-        xDrone = tvec[0]
+        xDrone = -tvec[0]
         yDrone = tvec[1]
         zDrone = tvec[2]
-        angleDrone = math.degrees(yaw_marker) -45
+        angleDrone = -(math.degrees(yaw_marker) -45)
 
         str_position = "DRONE Position x=%4.0f  y=%4.0f  z=%4.0f yaw=%4.0f"%(xDrone, yDrone, zDrone, angleDrone)
         cv2.putText(frame, str_position, (0, 100), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
@@ -340,7 +340,7 @@ while True:
 
     xError = xTarget[ii]-xDroneFiltered
     yError = yTarget[ii]-yDroneFiltered
-    zError = -(zTarget[ii]-zDroneFiltered)
+    zError = zTarget[ii]-zDroneFiltered
     angleError = getAngleError(angleDroneFiltered, angleTarget[ii], angleError_old)
     #print("Angle={:.1f}   Target={:.1f} Error={:.1f} ".format(angleDroneFiltered, angleTarget[ii], angleError))
 

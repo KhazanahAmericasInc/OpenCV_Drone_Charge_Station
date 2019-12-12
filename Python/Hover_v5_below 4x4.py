@@ -40,12 +40,14 @@ from scipy.signal import butter, lfilter
 #Position Targets
 xTarget = [0]
 yTarget = [0]
-zTarget = [55]
+zTarget = [35]
 angleTarget = [0]
 
+angleOffset = 315
+
 #--- Define Tag
-id_to_find  = 72
-marker_size  = 3 #- [cm]
+id_to_find  = 42
+marker_size  = 3.5 #- [cm]
 
 # specify the USB port for the Arduino
 usb_port = 'COM15'
@@ -126,7 +128,7 @@ def clamp(n, minimum, maximum):
 # define a Butterworth filter to filter the measurements
 # call y = lfilter(b, a, data) to filter the data signal
 order = 2  # second order filter
-fs = 30  # sampling frequency is around 30 Hz
+fs = 60  # sampling frequency is around 30 Hz
 nyq = 0.5 * fs
 lowcut = 2  # cutoff frequency at 2 Hz
 low = lowcut / nyq
@@ -164,7 +166,7 @@ KDx, KDy, KDz, KDangle = 120, 120, 80, 10
 # KDx, KDy, KDz, KDangle = 110, 110, 100, 10
 
 # define middle PPM values that make the drone hover
-throttle_middle = 1715  # up (+) and down (-)
+throttle_middle = 1800  # up (+) and down (-)
 aileron_middle = 1500  # left (-) and right (+)
 elevator_middle = 1500  # forward (+) and backward (-)
 rudder_middle = 1500  # yaw left (-) and yaw right (+)
@@ -197,7 +199,8 @@ R_flip[1,1] =-1.0
 R_flip[2,2] =-1.0
 
 #--- Define the aruco dictionary
-aruco_dict  = aruco.getPredefinedDictionary(aruco.DICT_ARUCO_ORIGINAL)
+aruco_dict  = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
+#aruco_dict  = aruco.getPredefinedDictionary(aruco.DICT_ARUCO_ORIGINAL)
 parameters  = aruco.DetectorParameters_create()
 
 
@@ -272,13 +275,14 @@ while True:
         #-- Get the attitude in terms of euler 321 (Needs to be flipped first)
         roll_marker, pitch_marker, yaw_marker = rotationMatrixToEulerAngles(R_flip*R_tc)
 
-        xDrone = tvec[0]
+        xDrone = -tvec[0]
         yDrone = tvec[1]
         zDrone = tvec[2]
-        angleDrone = math.degrees(yaw_marker) -45
+        #angleDrone = -((math.degrees(yaw_marker) +135)%360)
+        angleDrone = -((math.degrees(yaw_marker) + angleOffset)%365 -180)
 
-        str_position = "DRONE Position x=%4.0f  y=%4.0f  z=%4.0f yaw=%4.0f"%(xDrone, yDrone, zDrone, angleDrone)
-        cv2.putText(frame, str_position, (0, 100), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
+        #str_position = "DRONE Position x=%4.0f  y=%4.0f  z=%4.0f yaw=%4.0f"%(xDrone, yDrone, zDrone, angleDrone)
+        #cv2.putText(frame, str_position, (0, 100), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
 
 
     else:
@@ -297,7 +301,7 @@ while True:
         break
 
     # wait 1 ms for a key to be pressed
-    key = cv2.waitKey(20)
+    #key = cv2.waitKey(20)
 
     # record the position and orientation
     xRecord.append(xDrone)
@@ -340,7 +344,7 @@ while True:
 
     xError = xTarget[ii]-xDroneFiltered
     yError = yTarget[ii]-yDroneFiltered
-    zError = -(zTarget[ii]-zDroneFiltered)
+    zError = zTarget[ii]-zDroneFiltered
     angleError = getAngleError(angleDroneFiltered, angleTarget[ii], angleError_old)
     #print("Angle={:.1f}   Target={:.1f} Error={:.1f} ".format(angleDroneFiltered, angleTarget[ii], angleError))
 
@@ -384,8 +388,8 @@ while True:
 
     # project xCommand and yCommand on the axis of the drone
     # commands are relative to the middle PPM values
-    elevatorCommand = elevator_middle + np.sin(angleDroneRad)*xCommand + -np.cos(angleDroneRad)*yCommand
-    aileronCommand = aileron_middle + np.cos(angleDroneRad)*xCommand + np.sin(angleDroneRad)*yCommand
+    elevatorCommand = elevator_middle + -np.sin(angleDroneRad)*xCommand + -np.cos(angleDroneRad)*yCommand
+    aileronCommand = aileron_middle + np.cos(angleDroneRad)*xCommand + -np.sin(angleDroneRad)*yCommand
 
     # rudder command is angleCommand
     # commands are relative to the middle PPM values
@@ -405,7 +409,7 @@ while True:
 
     #print("[Location]: x={:.0f} y={:.0f} z={:.0f} angle={:.0f}".format(xDrone, yDrone, zDrone, angleDrone))
     # print the projected commands
-    #print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(throttleCommand, aileronCommand, elevatorCommand, rudderCommand))
+    print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(throttleCommand, aileronCommand, elevatorCommand, rudderCommand))
 
     # send to Arduino via serial port
     command = command + "\n"
@@ -422,9 +426,9 @@ while True:
     rudderRecord.append(rudderCommand)
 
     # if ESC is pressed, stop the program
-    if key == 27:
-        print("Exit!")
-        break
+    #if key == 27:
+      #  print("Exit!")
+      #  break
 
     loopsCount += 1
  

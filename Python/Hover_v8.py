@@ -41,28 +41,27 @@ import keyboard
 #Position Targets
 xTarget = [0]
 yTarget = [0]
-zTarget = 40.0
+zTarget = 50.0
 angleTarget = [0]
+
+angleOffset = 315
+
+yTrim = -15
+xTrim = 0
 
 landing = 70
 landingcut = 52
 maxheight = 30
 
 #--- Define Tag
-id_to_find  = 72
+id_to_find  = 42
 marker_size  = 3 #- [cm]
 
 # specify the USB port for the Arduino
 usb_port = 'COM15'
 
-#Manual Control
-throttle_rate=7
-aileron_rate=500
-elevator_rate=500
-rudder_rate=400
-
 # define middle PPM values that make the drone hover
-throttle_middle = 1650  # up (+) and down (-)
+throttle_middle = 1675  # up (+) and down (-)
 aileron_middle = 1500  # left (-) and right (+)
 elevator_middle = 1500  # forward (+) and backward (-)
 rudder_middle = 1500  # yaw left (-) and yaw right (+)
@@ -139,7 +138,7 @@ def clamp(n, minimum, maximum):
 # define a Butterworth filter to filter the measurements
 # call y = lfilter(b, a, data) to filter the data signal
 order = 2  # second order filter
-fs = 30  # sampling frequency is around 30 Hz
+fs = 60  # sampling frequency is around 30 Hz
 nyq = 0.5 * fs
 lowcut = 2  # cutoff frequency at 2 Hz
 low = lowcut / nyq
@@ -168,9 +167,22 @@ xError_old, yError_old, zError_old, angleError_old = 0, 0, 0, 0
 
 
 # # second set with filtering of measurements (30 fps)
-KPx, KPy, KPz, KPangle = 3, 3, 4, -3
-KIx, KIy, KIz, KIangle = 0, 0, 0.1, 0
-KDx, KDy, KDz, KDangle = 120, 120, 80, 10
+
+#For tuning pitch and roll
+P = 5
+I = 0
+D = 250
+KPx, KPy, KPz, KPangle = P, P, 2, -3
+KIx, KIy, KIz, KIangle = I, I, 0.04, 0
+KDx, KDy, KDz, KDangle = D, D, 220, 10
+
+#for tuning throttle
+#P = 2
+#I = 0.05
+#D = 80
+#KPx, KPy, KPz, KPangle = 4, 4, P, -3
+#KIx, KIy, KIz, KIangle = 0, 0, I, 0
+#KDx, KDy, KDz, KDangle = 120, 120, D, 10
 
 # third set with video recording (23 fps)
 # KPx, KPy, KPz, KPangle = 3, 3, 4, -3
@@ -197,8 +209,8 @@ time.sleep(1)
 
 #--- Get the camera calibration path
 calib_path  = ""
-camera_matrix   = np.loadtxt(calib_path+'cameraMatrix_Logitech.txt', delimiter=',')
-camera_distortion   = np.loadtxt(calib_path+'cameraDistortion_Logitech.txt', delimiter=',')
+camera_matrix   = np.loadtxt(calib_path+'cameraMatrix_PS_EYE.txt', delimiter=',')
+camera_distortion   = np.loadtxt(calib_path+'cameraDistortion_PS_EYE.txt', delimiter=',')
 
 #--- 180 deg rotation matrix around the x axis
 R_flip  = np.zeros((3,3), dtype=np.float32)
@@ -207,7 +219,7 @@ R_flip[1,1] =-1.0
 R_flip[2,2] =-1.0
 
 #--- Define the aruco dictionary
-aruco_dict  = aruco.getPredefinedDictionary(aruco.DICT_ARUCO_ORIGINAL)
+aruco_dict  = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
 parameters  = aruco.DetectorParameters_create()
 
 
@@ -232,7 +244,6 @@ time.sleep(2)
 start = time.perf_counter()
 end = start
 
-#zTarget = 50
 velocity = 0.1
 
 key = 22
@@ -262,7 +273,36 @@ while True:
     end = start
     printcount +=1
     if (printcount > 40):
-        #print (fps)
+        if keyboard.is_pressed('q'): 
+            P -= 1
+
+        if keyboard.is_pressed('w'): 
+            P += 1
+
+        if keyboard.is_pressed('a'): 
+            I -= 0.01
+
+        if keyboard.is_pressed('s'): 
+            I += 0.01
+
+        if keyboard.is_pressed('z'): 
+            D -= 10
+
+        if keyboard.is_pressed('x'): 
+            D += 10
+
+        print (fps)
+        print (P)
+        print (I)
+        print (D)
+
+        #KPx, KPy, KPz, KPangle = 4, 4, P, -3
+        #KIx, KIy, KIz, KIangle = 0, 0, I, 0
+        #KDx, KDy, KDz, KDangle = 120, 120, D, 10
+
+        KPx, KPy, KPz, KPangle = P, P, 2, -3
+        KIx, KIy, KIz, KIangle = I, I, 0.04, 0
+        KDx, KDy, KDz, KDangle = D, D, 220, 10
         printcount = 0
     
     # drone detected or not
@@ -282,7 +322,6 @@ while True:
     corners, ids, rejected = aruco.detectMarkers(image=gray, dictionary=aruco_dict, parameters=parameters)
     
     if ids is not None and ids[0] == id_to_find:
-
         droneDetected = True
         detectionCount += 1
 
@@ -299,7 +338,7 @@ while True:
 
         #-- Draw the detected marker and put a reference frame over it
         aruco.drawDetectedMarkers(frame, corners)
-        aruco.drawAxis(frame, camera_matrix, camera_distortion, rvec, tvec, 10)
+        #aruco.drawAxis(frame, camera_matrix, camera_distortion, rvec, tvec, 10)
 
 
         #-- Obtain the rotation matrix tag->camera
@@ -312,8 +351,8 @@ while True:
         xDrone = tvec[0]
         yDrone = tvec[1]
         zDrone = tvec[2]
-        angleDrone = math.degrees(yaw_marker) +45
-
+        angleDrone = -((math.degrees(yaw_marker) + angleOffset)%365 -180)
+        
         str_position = "DRONE Position x=%4.0f  y=%4.0f  z=%4.0f yaw=%4.0f"%(xDrone, yDrone, zDrone, angleDrone)
         cv2.putText(frame, str_position, (0, 100), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
 
@@ -321,8 +360,9 @@ while True:
     else:
         framesWithoutDrone += 1
 
-    if ((autoControl == 0) and (detectionCount > detectionThreshold) and (zDrone > detectionZLowerThreshold) and (zDrone < detectionZUpperThreshold)):
-        zTarget = zDrone
+    #if ((autoControl == 0) and (detectionCount > detectionThreshold) and (zDrone > detectionZLowerThreshold) and (zDrone < detectionZUpperThreshold)):
+    if ((autoControl == 0) and (detectionCount > detectionThreshold) ):
+        #zTarget = zDrone
         autoControl = 1
         print ("ZTarget: ")
         print (zTarget)
@@ -395,7 +435,7 @@ while True:
         xError = -(xTarget[ii]-xDroneFiltered)
         yError = yTarget[ii]-yDroneFiltered
         zError = int(zTarget)-zDroneFiltered
-        angleError = -(getAngleError(angleDroneFiltered, angleTarget[ii], angleError_old))
+        angleError = getAngleError(angleDroneFiltered, angleTarget[ii], angleError_old)
 
         ii += 1
 
@@ -414,8 +454,8 @@ while True:
         angleErrorD = angleError-angleError_old
 
         # compute commands
-        xCommand = KPx*xError + KIx*xErrorI*fps/60 + KDx*xErrorD*fps/60
-        yCommand = KPy*yError + KIy*yErrorI*fps/60 + KDy*yErrorD*fps/60
+        xCommand = KPx*xError + KIx*xErrorI*fps/60 + KDx*xErrorD*fps/60 + xTrim
+        yCommand = KPy*yError + KIy*yErrorI*fps/60 + KDy*yErrorD*fps/60 + yTrim
         zCommand = KPz*zError + KIz*zErrorI*fps/60 + KDz*zErrorD*fps/60
         angleCommand = KPangle*angleError + KIangle*angleErrorI*fps/60 + KDangle*angleErrorD*fps/60
 
@@ -423,16 +463,16 @@ while True:
         # commands are relative to the middle PPM values
         throttleCommand = throttle_middle + zCommand
 
-        print(" zError={:.0f} zErrorI={:.0f} zErrorD={:.0f} ".format(zError, zErrorI, zErrorD))
-        print("ZCommand={:.1f} ".format(zCommand))
+        #print(" zError={:.0f} zErrorI={:.0f} zErrorD={:.0f} ".format(zError, zErrorI, zErrorD))
+        #print("ZCommand={:.1f} ".format(zCommand))
 
         # angleDrone to radians for projection
         angleDroneRad = angleDrone * np.pi/180
 
         # project xCommand and yCommand on the axis of the drone
         # commands are relative to the middle PPM values
-        elevatorCommand = elevator_middle + np.sin(angleDroneRad)*xCommand + -np.cos(angleDroneRad)*yCommand
-        aileronCommand = aileron_middle + np.cos(angleDroneRad)*xCommand + np.sin(angleDroneRad)*yCommand
+        elevatorCommand = elevator_middle + -np.sin(angleDroneRad)*xCommand + -np.cos(angleDroneRad)*yCommand
+        aileronCommand = aileron_middle + np.cos(angleDroneRad)*xCommand + -np.sin(angleDroneRad)*yCommand
 
         # rudder command is angleCommand
         # commands are relative to the middle PPM values
@@ -443,13 +483,14 @@ while True:
         aileronCommand = round(clamp(aileronCommand, 1000, 2000))
         elevatorCommand = round(clamp(elevatorCommand, 1000, 2000))
         rudderCommand = round(clamp(rudderCommand, 1000, 2000))
+
         
 
         # create the command to send to Arduino
         command = "%i,%i,%i,%i,%i" % (throttleCommand, aileronCommand, elevatorCommand, rudderCommand, control)
 
         # print the projected commands
-        print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(throttleCommand, aileronCommand, elevatorCommand, rudderCommand))
+        #print("[COMMANDS]: T={:.0f} A={:.0f} E={:.0f} R={:.0f}".format(throttleCommand, aileronCommand, elevatorCommand, rudderCommand))
 
     # send to Arduino via serial port
     command = command + "\n"
@@ -471,6 +512,8 @@ while True:
     if keyboard.is_pressed('esc'): #ESC
         print("Exit!")
         break
+
+    
 
 
 time.sleep(0.5)

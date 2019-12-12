@@ -29,7 +29,7 @@ rudder_middle = 1500  # yaw left (-) and yaw right (+)
 # define engines off PPM value for throttle
 throttle_off = 1000
 
-arduino=serial.Serial('COM7', 115200, timeout=.01)
+arduino=serial.Serial('COM15', 115200, timeout=.01)
 
 # wait a bit for the connection to settle
 time.sleep(2)
