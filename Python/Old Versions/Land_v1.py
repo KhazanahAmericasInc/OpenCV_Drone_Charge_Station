@@ -253,7 +253,7 @@ while True:
     ret, frame = cap.read()
 
     #Flip Image
-    #frame = cv2.flip(frame, -1)
+    frame = cv2.flip(frame, -1)
 
     #-- Convert in gray scale
     gray    = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) #-- remember, OpenCV stores color images in Blue, Green, Red

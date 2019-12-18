@@ -58,11 +58,28 @@
 #include <string.h>
 #include <PPMReader.h>
 
+//Used to control the servos
+#include <Servo.h>
+
 int interruptPin = 2;
-int channelAmount = 4;
+int channelAmount = 5;
 PPMReader ppm(interruptPin, channelAmount);
 
 int control = 1000;
+int triggerDetach = 0; //Toggle for charge detach
+int lightMode = 0;
+int aux = 1000;
+
+const int numReadings = 10;
+
+int readings[numReadings];      // the readings from the analog input
+int readIndex = 0;              // the index of the current reading
+int total = 0;                  // the running total
+int average = 0;                // the average
+
+
+float brightness = 0;    // how bright the LED is
+float fadeAmount = 0.3;    // how many points to fade the LED by
 
 unsigned long lastString = 0;
 unsigned long currentTime = 0;
@@ -75,8 +92,10 @@ unsigned long ElapsedTime = 0;
 #define CE_pin    5  // CE   - D5
 #define MISO_pin  A0 // MISO - A0
 #define CS_pin    A1 // CS   - A1
-
+#define landingLightPin 11 // the PWM pin the LED is attached to
 #define ledPin    13 // LED  - D13
+#define servoPin 6
+#define chargePin A5
 
 // SPI outputs
 #define MOSI_on PORTD |= _BV(3)  // PD3
@@ -170,12 +189,15 @@ char* c = new char[200 + 1]; // match 200 characters reserved for inputString la
 char* errpt;
 uint8_t ppm_cnt;
 
+//Creates servo object
+Servo servo;
+
 void setup()
 {
     
     randomSeed((analogRead(A4) & 0x1F) | (analogRead(A5) << 5));
-    pinMode(ledPin, OUTPUT);
-    digitalWrite(ledPin, LOW); //start LED off
+    //pinMode(landingLightPin, OUTPUT);
+    pinMode(servoPin, OUTPUT);
     pinMode(MOSI_pin, OUTPUT);
     pinMode(SCK_pin, OUTPUT);
     pinMode(CS_pin, OUTPUT);
@@ -194,10 +216,21 @@ void setup()
     Serial.begin(115200);
     // reserve 200 bytes for the inputString:
     inputString.reserve(200);
+
+    servo.attach(servoPin);
+    servo.write(0);
+    delay(400);
+    servo.detach();
+
+    for (int thisReading = 0; thisReading < numReadings; thisReading++) {
+    readings[thisReading] = 0;
+    }
 }
 
 void loop()
 {
+    
+    
     uint32_t timeout=0;
     // reset / rebind
     //Serial.println("begin loop");
@@ -275,16 +308,21 @@ void loop()
      
     if (control == 1000) //Overwrite serial channels with signal from PPM
     {     
-        digitalWrite(ledPin, LOW); //start LED off
+        lightMode = 0;
+        //digitalWrite(landingLightPin, LOW); //start LED off
         ppm2[0] = ppm.latestValidChannelValue(3, 0);
         ppm2[1] = ppm.latestValidChannelValue(1, 0);
         ppm2[2] = ppm.latestValidChannelValue(2, 0);
         ppm2[3] = ppm.latestValidChannelValue(4, 0);
+        aux = ppm.latestValidChannelValue(5, 0);
+        servo.attach(servoPin);
     }
 
     if (control == 2000) //Accept serial channels 
     {
-      digitalWrite(ledPin, HIGH); //start LED ON
+      lightMode = 1;
+      servo.detach();
+      //digitalWrite(landingLightPin, HIGH); //start LED ON
     }
     ppm2[4] = 1500;
     ppm2[5] = 1500;
@@ -298,7 +336,72 @@ void loop()
       ppm2[2] = 1500;
       ppm2[3] = 1500;
     }
+
+    // subtract the last reading:
+    total = total - readings[readIndex];
+    // read from the sensor:
+    readings[readIndex] = analogRead(chargePin);
+    // add the reading to the total:
+    total = total + readings[readIndex];
+    // advance to the next position in the array:
+    readIndex = readIndex + 1;
   
+    // if we're at the end of the array...
+    if (readIndex >= numReadings) {
+      // ...wrap around to the beginning:
+      readIndex = 0;
+    }
+
+    // calculate the average:
+    average = total / numReadings;
+
+    if ((triggerDetach == 0) && (aux <= 1500))
+    {
+      ppm2[0] = 1000;
+      servo.write(120);
+      triggerDetach = 1; 
+    }
+
+    if ((control==1000) && (triggerDetach == 1) && (aux >= 1500))
+    {
+      servo.write(0);
+      triggerDetach = 0;
+    }
+
+    if (average >= 800)
+    {
+      lightMode = 3; 
+    }
+  
+    if (lightMode == 0)
+    {
+      analogWrite(landingLightPin, 0);
+    }
+
+    else if (lightMode == 1)
+    {
+      analogWrite(landingLightPin, 255);
+    }
+
+    else if (lightMode == 3)
+    {
+      // change the brightness for next time through the loop:
+      brightness = brightness + fadeAmount;
+  
+      // reverse the direction of the fading at the ends of the fade:
+      if (brightness <= 0 || brightness >= 150) {
+        fadeAmount = -fadeAmount;
+        }
+
+      analogWrite(landingLightPin, (int)brightness);
+    }
+
+
+    
+
+    
+    
+    
     // wait before sending next packet
     while(micros() < timeout) // timeout for CX-10 blue = 6000microseconds.
     {
