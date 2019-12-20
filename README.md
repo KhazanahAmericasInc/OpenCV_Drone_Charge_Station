@@ -1,5 +1,5 @@
 ## Description  
-An intelligent landing pad that can detect a drone flying overhead and take control to autonomously land the drone and recharge it. In this case, I am using an inexpensive indoor drone flown manually by a person before the autonomous landing procedure takes over control. In a commercial application, the drone would use other sensors to fly autonomous missions before the landing. I am focusing on just the landing portion of the problem because autonomous flight is already common and not as challenging.  
+An intelligent landing pad that can detect a drone flying overhead and take control to autonomously land the drone and recharge it. In this case, I am using an inexpensive indoor drone flown manually by a person before the autonomous landing procedure takes over control. In a commercial application, the drone would use other sensors to fly autonomous missions before the landing. I am focusing on just the landing portion of the problem.  
 
 ## Video  
 YouTube Demo Video: https://www.youtube.com/watch?v=vQnh8SQZ9hY  
