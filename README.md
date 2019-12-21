@@ -4,7 +4,7 @@ An intelligent landing pad that can detect a drone flying overhead and take cont
 ## Video  
 YouTube Demo Video: https://www.youtube.com/watch?v=vQnh8SQZ9hY  
 
-![Systems Diagram](images/Diagram.jpg)
+![Systems Diagram](Images/Diagram.jpg)
 
 To fly a drone autonomously, you need to know the actual location of the drone and a target location. Most advanced drones use GPS to accomplish this. For cheaper indoor drones, they have no sense of location so we need to provide this information to the control system.  We selected computer vision to track the drone position because it is inexpensive compared to other sensor options. The AruCo library is used to estimate the location of a small tag on the bottom of the drone. A webcam is located in the landing pad to view the drone flying above.  
 
