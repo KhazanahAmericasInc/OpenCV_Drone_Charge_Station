@@ -3,6 +3,7 @@
  This is a fork of the Multi-Protocol nRF24L01 Tx project
  from goebish on RCgroups / github. 
  This serial communication of this program is from perrytsao on github.com
+ The PPM library is from: https://github.com/Nikkilae/PPM-reader
  
  This version accepts either PPM or serial port strings and converts
  them to ppm commands which are then transmitted via
@@ -11,15 +12,11 @@
  drone via code running on a PC or a FS-iA6B reciever connected via PPM. 
 
  This code reads channel values over serial from a Python program. 
- The first 4 channels are for control of the drone. The 4th channel selects 
+ The first 4 channels are for control of the drone. The 5th channel selects 
  if the channel values from the python program should be sent to the drone 
  or if the channel values from the PPM of the attached receiver should be sent
 
  This code was tested on the Arduino Uno and nRF24L01 module.
-
- I believe this code will remain compatible with goebish's
- nRF24L01 Multi-Protocol board.  A way to
- connect to the serial port will be needed (such as the FTDI).
 
  *********************************************************************************
 
@@ -61,26 +58,31 @@
 //Used to control the servos
 #include <Servo.h>
 
+//PPM input on pin 2
 int interruptPin = 2;
+
+//Amount of channels to read from PPM
 int channelAmount = 5;
+
+//Initialize the ppm reader
 PPMReader ppm(interruptPin, channelAmount);
 
-int control = 1000;
+int control = 1000;//Track control (1000 is user control, 2000 is computer control)
 int triggerDetach = 0; //Toggle for charge detach
-int lightMode = 0;
-int aux = 1000;
+int lightMode = 0; //of for off, 1 for on, 3 for fade
+int aux = 1000; //Used to record aux channel from user controller
 
+//These values are used to average the voltage readings from the charger led
 const int numReadings = 10;
-
 int readings[numReadings];      // the readings from the analog input
 int readIndex = 0;              // the index of the current reading
 int total = 0;                  // the running total
 int average = 0;                // the average
 
-
 float brightness = 0;    // how bright the LED is
 float fadeAmount = 0.3;    // how many points to fade the LED by
 
+//Tracks timing of events
 unsigned long lastString = 0;
 unsigned long currentTime = 0;
 unsigned long ElapsedTime = 0;
@@ -111,9 +113,6 @@ unsigned long ElapsedTime = 0;
 
 #define RF_POWER TX_POWER_80mW
 
-// tune ppm input for "special" transmitters
-// #define SPEKTRUM // TAER, 1100-1900, AIL & RUD reversed
-
 // PPM stream settings
 #define CHANNELS 5 // number of channels in ppm stream, 12 ideally
 enum chan_order{
@@ -131,6 +130,7 @@ enum chan_order{
     AUX8,  // (CH12) Reset / Rebind
 };
 
+//Define channel values 
 #define PPM_MIN 1000
 #define PPM_SAFE_THROTTLE 1050
 #define PPM_MID 1500
@@ -179,6 +179,8 @@ static bool reset=true;
 volatile uint16_t Servo_data[12];
 static uint16_t ppm2[12] = {PPM_MIN,PPM_MID,PPM_MID,PPM_MID,PPM_MIN,PPM_MIN,
                            PPM_MIN,PPM_MID,PPM_MID,PPM_MID,PPM_MID,PPM_MID,};
+                           
+//Sets channels to safe values                          
 int throttle = 1000;
 int aileron, elevator, rudder = 1500;
 
@@ -196,7 +198,8 @@ void setup()
 {
     
     randomSeed((analogRead(A4) & 0x1F) | (analogRead(A5) << 5));
-    //pinMode(landingLightPin, OUTPUT);
+    
+    //Sets pinModes
     pinMode(servoPin, OUTPUT);
     pinMode(MOSI_pin, OUTPUT);
     pinMode(SCK_pin, OUTPUT);
@@ -204,24 +207,24 @@ void setup()
     pinMode(CE_pin, OUTPUT);
     pinMode(MISO_pin, INPUT);
 
-    // PPM ISR setup
-    // attachInterrupt(digitalPinToInterrupt(PPM_pin), ISR_ppm, CHANGE);
     TCCR1A = 0;  //reset timer1
     TCCR1B = 0;
     TCCR1B |= (1 << CS11);  //set timer1 to increment every 1 us @ 8MHz, 0.5 us @16MHz
-
     set_txid(false);
 
     // Serial port input/output setup
     Serial.begin(115200);
+    
     // reserve 200 bytes for the inputString:
     inputString.reserve(200);
 
+    //Attach servo and set it to a safe position
     servo.attach(servoPin);
     servo.write(0);
     delay(400);
-    servo.detach();
+    servo.detach(); //Detach prevents jitter when it is not in use
 
+    //Initializes reading values to 0
     for (int thisReading = 0; thisReading < numReadings; thisReading++) {
     readings[thisReading] = 0;
     }
@@ -230,10 +233,8 @@ void setup()
 void loop()
 {
     
-    
-    uint32_t timeout=0;
     // reset / rebind
-    //Serial.println("begin loop");
+    uint32_t timeout=0;
     if(reset || ppm2[AUX8] > PPM_MAX_COMMAND) {
         reset = false;
         Serial.println("selecting protocol");
@@ -246,8 +247,8 @@ void loop()
         init_protocol();
         Serial.println("init protocol complete.");
     }
+    
     // process protocol
-    //Serial.println("processing protocol.");
     switch(current_protocol) {
         case PROTO_E010:
             timeout = process_MJX();
@@ -256,12 +257,13 @@ void loop()
     
     overrun_cnt=0;
 
+    //Track timing 
     currentTime = millis();
     
     if (stringComplete) {
-        //Serial.println(inputString);
         // process string
 
+       //record timing of string received 
        lastString = millis();
         
        strcpy(c, inputString.c_str());
@@ -270,12 +272,13 @@ void loop()
        while (p !=0){
          int val=strtol(p, &errpt, 10);
          if (!*errpt) {
-           if (ppm_cnt == 4)
+           if (ppm_cnt == 4) //command #5 (cnt is 4) is the control value
            {
               control = val;
            }  
            else
            {
+              //Record commands in array
               ppm2[ppm_cnt]=val;
            }
            
@@ -285,7 +288,6 @@ void loop()
          }
 
  
-
          // clear the string:
          inputString = "";
          stringComplete = false;
@@ -308,27 +310,30 @@ void loop()
      
     if (control == 1000) //Overwrite serial channels with signal from PPM
     {     
-        lightMode = 0;
-        //digitalWrite(landingLightPin, LOW); //start LED off
+        
+        lightMode = 0; //Light off
         ppm2[0] = ppm.latestValidChannelValue(3, 0);
         ppm2[1] = ppm.latestValidChannelValue(1, 0);
         ppm2[2] = ppm.latestValidChannelValue(2, 0);
         ppm2[3] = ppm.latestValidChannelValue(4, 0);
         aux = ppm.latestValidChannelValue(5, 0);
-        servo.attach(servoPin);
+        servo.attach(servoPin); //Attach servo to be used by the user
     }
 
     if (control == 2000) //Accept serial channels 
     {
-      lightMode = 1;
-      servo.detach();
-      //digitalWrite(landingLightPin, HIGH); //start LED ON
+      lightMode = 1; //Light on
+      servo.detach(); //Detach servo to prevent jitter
     }
+    
+    //Set aux channels to middle levels to keep flip and headless modes off
     ppm2[4] = 1500;
     ppm2[5] = 1500;
 
+    //Calculate time since last string is received 
     ElapsedTime = currentTime - lastString;
 
+    //If connection is lost with the python program, send safe commands to the drone 
     if (ElapsedTime >= 500)
     {
       ppm2[0] = 1000;
@@ -355,6 +360,7 @@ void loop()
     // calculate the average:
     average = total / numReadings;
 
+    //If user toggles the aux 5 switch, move the servo
     if ((triggerDetach == 0) && (aux <= 1500))
     {
       ppm2[0] = 1000;
@@ -362,27 +368,32 @@ void loop()
       triggerDetach = 1; 
     }
 
+    //If user toggles the aux 5 switch, move the servo
     if ((control==1000) && (triggerDetach == 1) && (aux >= 1500))
     {
       servo.write(0);
       triggerDetach = 0;
     }
 
+    //If charging is detected, fade the leds
     if (average >= 800)
     {
       lightMode = 3; 
     }
-  
+
+    //Turn off leds
     if (lightMode == 0)
     {
       analogWrite(landingLightPin, 0);
     }
 
+    //Turn on leds
     else if (lightMode == 1)
     {
       analogWrite(landingLightPin, 255);
     }
 
+    //Fade leds
     else if (lightMode == 3)
     {
       // change the brightness for next time through the loop:
@@ -393,15 +404,9 @@ void loop()
         fadeAmount = -fadeAmount;
         }
 
-      analogWrite(landingLightPin, (int)brightness);
+      analogWrite(landingLightPin, (int)brightness); //Write value to led in
     }
-
-
-    
-
-    
-    
-    
+       
     // wait before sending next packet
     while(micros() < timeout) // timeout for CX-10 blue = 6000microseconds.
     {
@@ -409,6 +414,7 @@ void loop()
       };
 }
 
+//Sets the transmitter ID
 void set_txid(bool renew)
 {
     uint8_t i;
@@ -422,6 +428,8 @@ void set_txid(bool renew)
     }
 }
 
+
+//Selects the communication protocol
 void selectProtocol()
 {
     // Modified and commented out lines so that Cheerson CX-10 Blue is always selected
@@ -435,6 +443,7 @@ void selectProtocol()
     // wait for safe throttle
 }
 
+//Initializes the communication protocol
 void init_protocol()
 {
     switch(current_protocol) {
